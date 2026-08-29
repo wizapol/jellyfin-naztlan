@@ -95,15 +95,26 @@ public class StreamState : EncodingJobInfo, IDisposable
 
                 if (IsSegmentedLiveStream)
                 {
-                    return 3;
+                    return LiveSegmentLength;
                 }
 
                 return 6;
             }
 
-            return 3;
+            return IsSegmentedLiveStream ? LiveSegmentLength : 3;
         }
     }
+
+    // naztlan 2026-08-28: el arranque de un directo esperaba MinSegments (3) segmentos de
+    // SegmentLength (3 s) = >= 9 s fijos antes de servir live.m3u8 (medido: 19-22 s de
+    // extremo a extremo). Con 2 s / 1 segmento baja a 3-5 s. Ajustable por entorno
+    // JELLYFIN_LIVE_SEGMENT_LENGTH / JELLYFIN_LIVE_MIN_SEGMENTS sin recompilar.
+    private static int EnvInt(string name, int fallback)
+        => int.TryParse(Environment.GetEnvironmentVariable(name), out var v) && v > 0 ? v : fallback;
+
+    private static readonly int LiveSegmentLength = EnvInt("JELLYFIN_LIVE_SEGMENT_LENGTH", 2);
+
+    private static readonly int LiveMinSegments = EnvInt("JELLYFIN_LIVE_MIN_SEGMENTS", 1);
 
     /// <summary>
     /// Gets the minimum number of segments.
@@ -115,6 +126,11 @@ public class StreamState : EncodingJobInfo, IDisposable
             if (Request.MinSegments.HasValue)
             {
                 return Request.MinSegments.Value;
+            }
+
+            if (IsSegmentedLiveStream)
+            {
+                return LiveMinSegments;
             }
 
             return SegmentLength >= 10 ? 2 : 3;
