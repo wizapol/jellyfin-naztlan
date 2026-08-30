@@ -45,6 +45,21 @@ public class GuideManager : IGuideManager
     public const int MaxCacheDays = 2;
 
     /// <summary>
+    /// naztlan: days of already-aired guide data to import and keep (catchup).
+    /// Env JELLYFIN_GUIDE_PAST_DAYS, 0 (upstream behaviour: 1 hour) .. 30.
+    /// Programs older than the window are dropped by CleanDatabase as before,
+    /// because they simply stop being part of the imported id list.
+    /// </summary>
+    public static int GuidePastDays
+    {
+        get
+        {
+            var raw = Environment.GetEnvironmentVariable("JELLYFIN_GUIDE_PAST_DAYS");
+            return int.TryParse(raw, out var d) ? Math.Clamp(d, 0, 30) : 0;
+        }
+    }
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="GuideManager"/> class.
     /// </summary>
     /// <param name="logger">The <see cref="ILogger{TCategoryName}"/>.</param>
@@ -214,7 +229,7 @@ public class GuideManager : IGuideManager
 
         var guideDays = GetGuideDays();
 
-        _logger.LogInformation("Refreshing guide with {Days} days of guide data", guideDays);
+        _logger.LogInformation("Refreshing guide with {Days} days of guide data and {PastDays} past days (catchup)", guideDays, GuidePastDays);
 
         var maxCacheDate = DateTime.UtcNow.AddDays(MaxCacheDays);
         foreach (var currentChannel in list)
@@ -224,8 +239,9 @@ public class GuideManager : IGuideManager
 
             try
             {
-                var start = DateTime.UtcNow.AddHours(-1);
-                var end = start.AddDays(guideDays);
+                // naztlan: keep the upstream forward window, extend backwards for catchup.
+                var start = DateTime.UtcNow.AddHours(-1).AddDays(-GuidePastDays);
+                var end = DateTime.UtcNow.AddHours(-1).AddDays(guideDays);
 
                 var isMovie = false;
                 var isSports = false;
