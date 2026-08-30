@@ -172,7 +172,8 @@ namespace Emby.Server.Implementations.Library
             var mediaSources = GetStaticMediaSources(item, enablePathSubstitution, user);
 
             // If file is strm or main media stream is missing, force a metadata refresh with remote probing
-            if (allowMediaProbe && mediaSources[0].Type != MediaSourceType.Placeholder
+            if (allowMediaProbe && mediaSources.Count > 0
+                && mediaSources[0].Type != MediaSourceType.Placeholder
                 && (item.Path.EndsWith(".strm", StringComparison.OrdinalIgnoreCase)
                     || (item.MediaType == MediaType.Video && mediaSources[0].MediaStreams.All(i => i.Type != MediaStreamType.Video))
                     || (item.MediaType == MediaType.Audio && mediaSources[0].MediaStreams.All(i => i.Type != MediaStreamType.Audio))))
@@ -349,7 +350,13 @@ namespace Emby.Server.Implementations.Library
         {
             ArgumentNullException.ThrowIfNull(item);
 
-            var hasMediaSources = (IHasMediaSources)item;
+            // naztlan: virtual LiveTvProgram items intentionally do not implement
+            // IHasMediaSources. They can still receive sources from plugin
+            // IMediaSourceProvider implementations below in GetPlaybackMediaSources.
+            if (item is not IHasMediaSources hasMediaSources)
+            {
+                return [];
+            }
 
             var sources = hasMediaSources.GetMediaSources(enablePathSubstitution);
 

@@ -2,6 +2,7 @@ using AutoFixture;
 using AutoFixture.AutoMoq;
 using Emby.Server.Implementations.IO;
 using Emby.Server.Implementations.Library;
+using MediaBrowser.Controller.LiveTv;
 using MediaBrowser.Model.IO;
 using MediaBrowser.Model.MediaInfo;
 using Xunit;
@@ -28,5 +29,9 @@ namespace Jellyfin.Server.Implementations.Tests.Library
         [InlineData("rtsp://media.example.com:554/twister/audiotrack", MediaProtocol.Rtsp)]
         public void GetPathProtocol_ValidArg_Correct(string path, MediaProtocol expected)
             => Assert.Equal(expected, _mediaSourceManager.GetPathProtocol(path));
+
+        [Fact]
+        public void GetStaticMediaSources_LiveTvProgram_ReturnsEmpty()
+            => Assert.Empty(_mediaSourceManager.GetStaticMediaSources(new LiveTvProgram(), false));
     }
 }

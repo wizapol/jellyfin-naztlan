@@ -309,7 +309,14 @@ namespace Jellyfin.LiveTv
 
         private async Task<List<MediaSourceInfo>> GetChannelMediaSources(BaseItem item, CancellationToken cancellationToken)
         {
-            var baseItem = (LiveTvChannel)item;
+            // naztlan: programs (and anything that is not a channel) have no sources
+            // here; return an empty list so plugin IMediaSourceProvider implementations
+            // can supply them (catchup) instead of aborting with InvalidCastException.
+            if (item is not LiveTvChannel baseItem)
+            {
+                return [];
+            }
+
             var service = GetService(baseItem.ServiceName);
 
             var sources = await service.GetChannelStreamMediaSources(baseItem.ExternalId, cancellationToken).ConfigureAwait(false);
