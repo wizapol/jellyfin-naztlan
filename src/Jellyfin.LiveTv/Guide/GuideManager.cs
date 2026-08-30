@@ -96,8 +96,10 @@ public class GuideManager : IGuideManager
     /// <inheritdoc />
     public GuideInfo GetGuideInfo()
     {
-        var startDate = DateTime.UtcNow;
-        var endDate = startDate.AddDays(GetGuideDays());
+        // naztlan: the guide also spans the retained past days so clients can
+        // show (and play, via catchup) programmes that already aired.
+        var startDate = DateTime.UtcNow.AddDays(-GuidePastDays);
+        var endDate = DateTime.UtcNow.AddDays(GetGuideDays());
 
         return new GuideInfo
         {
