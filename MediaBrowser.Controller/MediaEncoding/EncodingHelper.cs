@@ -7233,11 +7233,13 @@ namespace MediaBrowser.Controller.MediaEncoding
             inputModifier += " " + GetFastSeekCommandLineParameter(state, encodingOptions, segmentContainer);
             inputModifier = inputModifier.Trim();
 
-            // naztlan: start-over (plugin NaztlanCatchup, MediaSource "*-startover"): la entrada es una
+            // naztlan: start-over (plugin NaztlanCatchup: fuente infinita cuyo Path lleva begin= sin end=): la entrada es una
             // playlist HLS viva que empieza en el inicio del programa. El demuxer hls de ffmpeg arranca
             // por defecto 3 segmentos antes del borde vivo (live_start_index=-3); para que la playlist
             // EVENT crezca desde el inicio del programa hay que pedirle el primer segmento.
-            if (state.MediaSource?.Id?.EndsWith("-startover", StringComparison.Ordinal) == true)
+            if (state.MediaSource is { IsInfiniteStream: true, Path: { } naztlanPath }
+                && naztlanPath.Contains("begin=", StringComparison.Ordinal)
+                && !naztlanPath.Contains("end=", StringComparison.Ordinal))
             {
                 inputModifier += " -live_start_index 0";
             }
