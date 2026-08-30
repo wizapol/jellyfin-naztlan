@@ -104,14 +104,31 @@ namespace Emby.Server.Implementations.Library
 
             if (!string.IsNullOrEmpty(cacheKey))
             {
+                // naztlan: upstream se queda con UNA pista de video y UNA de audio y les borra el
+                // idioma, porque en un directo los indices no son estables. El efecto es que un
+                // canal con audio dual (los de cine de Totalplay traen mp2 spa + mp2 eng) pierde
+                // la segunda pista y el reproductor no ofrece selector de idioma.
+                // Cuando el sondeo encuentra MAS DE UNA pista de audio se conservan todas con su
+                // indice e idioma reales, que es lo que permite elegirlas; con una sola pista se
+                // mantiene el comportamiento de upstream intacto.
+                var audioStreams = mediaStreams.Where(i => i.Type == MediaStreamType.Audio).ToList();
                 var newList = new List<MediaStream>();
-                newList.AddRange(mediaStreams.Where(i => i.Type == MediaStreamType.Video).Take(1));
-                newList.AddRange(mediaStreams.Where(i => i.Type == MediaStreamType.Audio).Take(1));
 
-                foreach (var stream in newList)
+                if (audioStreams.Count > 1)
                 {
-                    stream.Index = -1;
-                    stream.Language = null;
+                    newList.AddRange(mediaStreams.Where(i => i.Type == MediaStreamType.Video).Take(1));
+                    newList.AddRange(audioStreams);
+                }
+                else
+                {
+                    newList.AddRange(mediaStreams.Where(i => i.Type == MediaStreamType.Video).Take(1));
+                    newList.AddRange(audioStreams.Take(1));
+
+                    foreach (var stream in newList)
+                    {
+                        stream.Index = -1;
+                        stream.Language = null;
+                    }
                 }
 
                 mediaStreams = newList;
